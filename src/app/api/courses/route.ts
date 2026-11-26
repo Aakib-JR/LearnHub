@@ -61,9 +61,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Get all courses
-export async function GET() {
+// Get all courses with search
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get("search")?.trim() || "";
+
     const result = await db.query(
       `SELECT
          courses.id,
@@ -75,7 +78,11 @@ export async function GET() {
          users.name AS instructor_name
        FROM courses
        INNER JOIN users ON courses.user_id = users.id
-       ORDER BY courses.created_at DESC`
+       WHERE
+         courses.title ILIKE $1
+         OR courses.description ILIKE $1
+       ORDER BY courses.created_at DESC`,
+      [`%${search}%`]
     );
 
     return NextResponse.json({
