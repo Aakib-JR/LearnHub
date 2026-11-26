@@ -5,10 +5,12 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
+import LessonEditor from "@/components/LessonEditor/LessonEditor";
 import styles from "./page.module.css";
 
 interface Course {
   id: number;
+  user_id: number;
   title: string;
   description: string;
   total_seats: number;
@@ -21,6 +23,7 @@ function CourseDetailsContent() {
   const id = params.id as string;
 
   const [course, setCourse] = useState<Course | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -30,14 +33,26 @@ function CourseDetailsContent() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(`/api/courses/${id}`);
-        const data = await response.json();
+        const [courseResponse, authResponse] = await Promise.all([
+          fetch(`/api/courses/${id}`),
+          fetch("/api/auth/me"),
+        ]);
 
-        if (!response.ok || !data.success) {
-          throw new Error(data.message || "Course not found");
+        const courseData = await courseResponse.json();
+
+        if (!courseResponse.ok || !courseData.success) {
+          throw new Error(courseData.message || "Course not found");
         }
 
-        setCourse(data.course);
+        setCourse(courseData.course);
+
+        if (authResponse.ok) {
+          const authData = await authResponse.json();
+
+          if (authData.success) {
+            setCurrentUserId(Number(authData.user.id));
+          }
+        }
       } catch (error) {
         setError(
           error instanceof Error
@@ -64,32 +79,38 @@ function CourseDetailsContent() {
         {error && <p className={styles.error}>{error}</p>}
 
         {course && (
-          <section className={styles.courseDetails}>
-            <span className={styles.tag}>COURSE DETAILS</span>
+          <>
+            <section className={styles.courseDetails}>
+              <span className={styles.tag}>COURSE DETAILS</span>
 
-            <h1>{course.title}</h1>
+              <h1>{course.title}</h1>
 
-            <p className={styles.description}>
-              {course.description}
-            </p>
-
-            <div className={styles.info}>
-              <p>
-                <strong>Instructor:</strong>{" "}
-                {course.instructor_name}
+              <p className={styles.description}>
+                {course.description}
               </p>
 
-              <p>
-                <strong>Total Seats:</strong>{" "}
-                {course.total_seats}
-              </p>
+              <div className={styles.info}>
+                <p>
+                  <strong>Instructor:</strong>{" "}
+                  {course.instructor_name}
+                </p>
 
-              <p>
-                <strong>Available Seats:</strong>{" "}
-                {course.available_seats}
-              </p>
-            </div>
-          </section>
+                <p>
+                  <strong>Total Seats:</strong>{" "}
+                  {course.total_seats}
+                </p>
+
+                <p>
+                  <strong>Available Seats:</strong>{" "}
+                  {course.available_seats}
+                </p>
+              </div>
+            </section>
+
+            {currentUserId === course.user_id && (
+              <LessonEditor courseId={String(course.id)} />
+            )}
+          </>
         )}
       </div>
     </main>
