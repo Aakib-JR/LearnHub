@@ -30,24 +30,44 @@ export default function Navbar() {
             menuOpen ? styles.showMenu : ""
           }`}
         >
-          <Link href="/" className={styles.navLink}>
+          <Link
+            href="/"
+            className={styles.navLink}
+            onClick={() => setMenuOpen(false)}
+          >
             Home
           </Link>
 
-          <Link href="/courses" className={styles.navLink}>
+          <Link
+            href="/courses"
+            className={styles.navLink}
+            onClick={() => setMenuOpen(false)}
+          >
             Courses
           </Link>
 
-          <Link href="/about" className={styles.navLink}>
+          <Link
+            href="/about"
+            className={styles.navLink}
+            onClick={() => setMenuOpen(false)}
+          >
             About
           </Link>
 
           <div className={styles.authLinks}>
-            <Link href="/login" className={styles.loginButton}>
+            <Link
+              href="/login"
+              className={styles.loginButton}
+              onClick={() => setMenuOpen(false)}
+            >
               Login
             </Link>
 
-            <Link href="/register" className={styles.registerButton}>
+            <Link
+              href="/register"
+              className={styles.registerButton}
+              onClick={() => setMenuOpen(false)}
+            >
               Get Started
             </Link>
           </div>
