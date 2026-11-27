@@ -1,9 +1,16 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import styles from "./Courses.module.css";
 
+interface ApiCourse {
+  id: number;
+  title: string;
+}
+
 const courses = [
   {
-    id: 1,
     title: "Full Stack Web Development",
     category: "Development",
     level: "Beginner",
@@ -11,10 +18,9 @@ const courses = [
     description:
       "Learn HTML, CSS, JavaScript, React, Node.js and build real-world projects.",
     image:
-      "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600",
+      "https://technosoftacademy.in/wp-content/uploads/2026/08/full-stack-web-development-course.png",
   },
   {
-    id: 2,
     title: "UI/UX Design Fundamentals",
     category: "Design",
     level: "Beginner",
@@ -22,10 +28,9 @@ const courses = [
     description:
       "Master modern UI/UX design principles and create beautiful user experiences.",
     image:
-      "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=600",
+      "https://coursecentral.in/wp-content/uploads/2025/04/UI_UX-Designing.jpg",
   },
   {
-    id: 3,
     title: "Python Programming",
     category: "Programming",
     level: "Intermediate",
@@ -33,11 +38,36 @@ const courses = [
     description:
       "Explore Python programming and develop practical coding skills.",
     image:
-      "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=600",
+      "https://i.pinimg.com/736x/6a/fb/f4/6afbf45910b9b4c344737f76043d2cbc.jpg",
   },
 ];
 
 export default function Courses() {
+  const [courseIds, setCourseIds] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    async function fetchCourseIds() {
+      try {
+        const response = await fetch("/api/courses");
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          const ids: Record<string, number> = {};
+
+          (data.courses as ApiCourse[]).forEach((course) => {
+            ids[course.title] = course.id;
+          });
+
+          setCourseIds(ids);
+        }
+      } catch (error) {
+        console.error("Failed to load course IDs:", error);
+      }
+    }
+
+    fetchCourseIds();
+  }, []);
+
   return (
     <section className={styles.coursesSection}>
       <div className={styles.container}>
@@ -57,31 +87,38 @@ export default function Courses() {
         </div>
 
         <div className={styles.courseGrid}>
-          {courses.map((course) => (
-            <article className={styles.courseCard} key={course.id}>
-              <div className={styles.courseImage}>
-                <img src={course.image} alt={course.title} />
-                <span className={styles.category}>
-                  {course.category}
-                </span>
-              </div>
+          {courses.map((course) => {
+            const courseId = courseIds[course.title];
 
-              <div className={styles.courseContent}>
-                <div className={styles.courseInfo}>
-                  <span>{course.level}</span>
-                  <span>{course.duration}</span>
+            return (
+              <article className={styles.courseCard} key={course.title}>
+                <div className={styles.courseImage}>
+                  <img src={course.image} alt={course.title} />
+                  <span className={styles.category}>
+                    {course.category}
+                  </span>
                 </div>
 
-                <h3>{course.title}</h3>
+                <div className={styles.courseContent}>
+                  <div className={styles.courseInfo}>
+                    <span>{course.level}</span>
+                    <span>{course.duration}</span>
+                  </div>
 
-                <p>{course.description}</p>
+                  <h3>{course.title}</h3>
 
-                <Link href="/courses" className={styles.courseButton}>
-                  View Course →
-                </Link>
-              </div>
-            </article>
-          ))}
+                  <p>{course.description}</p>
+
+                  <Link
+                    href={courseId ? `/courses/${courseId}` : "/courses"}
+                    className={styles.courseButton}
+                  >
+                    View Course →
+                  </Link>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -15,6 +14,35 @@ interface Course {
   available_seats: number;
   instructor_name: string;
 }
+
+const courseImages: Record<string, string> = {
+  "Learn React and Next.js":
+    "https://www.devwithai.blog/_next/image?url=%2Fimages%2Freact-vs-nextjs-complete-guide.png&w=3840&q=75",
+
+  "Complete React.js for Beginners":
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLyWqMvVtH8uH95ZQCtVyiTlR-w_IQO0PaB27Eh9ou2AQ39W-9nD9ut3k&s=10",
+
+  "Full Stack Web Development":
+    "https://technosoftacademy.in/wp-content/uploads/2026/08/full-stack-web-development-course.png",
+
+  "UI/UX Design Fundamentals":
+    "https://coursecentral.in/wp-content/uploads/2025/04/UI_UX-Designing.jpg",
+
+  "Python Programming":
+    "https://i.pinimg.com/736x/6a/fb/f4/6afbf45910b9b4c344737f76043d2cbc.jpg",
+
+  "JavaScript for Beginners":
+    "https://www.syncfusion.com/blogs/images/posts/prevent-javascript-memory-leaks-guide/mastering-javascript-memory-leaks-detect-fix-and-prevent.png",
+
+  "Node.js & Express.js":
+    "https://codeit.com.np/storage/01J5CG8QJYWM82K1JE6SESQAEB.png",
+
+  "Database Management with PostgreSQL":
+    "https://solvaria.com/wp-content/uploads/2026/02/Featured-1_34261013a2.webp",
+
+  "Next.js Complete Guide":
+    "https://img-c.udemycdn.com/course/480x270/5443718_2161_3.jpg?w=3840&q=75",
+};
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -92,23 +120,37 @@ export default function CoursesPage() {
                 className={styles.courseCard}
                 key={course.id}
               >
-                <h3>{course.title}</h3>
+                <img
+                  src={
+                    courseImages[course.title] ||
+                    "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600"
+                  }
+                  alt={course.title}
+                  className={styles.courseImage}
+                />
 
-                <p>{course.description}</p>
+                <div className={styles.courseContent}>
+                  <h3>{course.title}</h3>
 
-                <p>Instructor: {course.instructor_name}</p>
+                  <p>{course.description}</p>
 
-                <p>
-                  Available Seats: {course.available_seats} /{" "}
-                  {course.total_seats}
-                </p>
+                  <p className={styles.courseMeta}>
+                    <strong>Instructor:</strong>{" "}
+                    {course.instructor_name}
+                  </p>
 
-                <Link
-                  href={`/courses/${course.id}`}
-                  className={styles.courseButton}
-                >
-                  View Course →
-                </Link>
+                  <p className={styles.courseMeta}>
+                    <strong>Available Seats:</strong>{" "}
+                    {course.available_seats} / {course.total_seats}
+                  </p>
+
+                  <Link
+                    href={`/courses/${course.id}`}
+                    className={styles.courseButton}
+                  >
+                    View Course →
+                  </Link>
+                </div>
               </article>
             ))}
           </div>
