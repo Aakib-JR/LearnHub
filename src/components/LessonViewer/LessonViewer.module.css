@@ -1,0 +1,178 @@
+.container {
+  margin-top: 40px;
+  margin-bottom: 50px;
+}
+
+.heading {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  color: #172033;
+}
+
+.progressSection {
+  background: #f8fafc;
+  padding: 22px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.progressInfo strong {
+  color: #2563eb;
+}
+
+.progressBar {
+  width: 100%;
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 20px;
+  transition: width 0.3s ease;
+}
+
+.progressSection p {
+  margin-top: 10px;
+  margin-bottom: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 25px;
+}
+
+.lessonList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lessonButton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 15px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: white;
+  text-align: left;
+  cursor: pointer;
+  color: #334155;
+  transition: 0.2s ease;
+}
+
+.lessonButton:hover {
+  background: #f8fafc;
+  border-color: #2563eb;
+}
+
+.lessonButton span:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.active span:first-child {
+  background: #2563eb;
+  color: white;
+}
+
+.lessonContent {
+  padding: 30px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: white;
+  min-height: 300px;
+}
+
+.lessonType {
+  display: inline-block;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 15px;
+}
+
+.lessonContent h3 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  color: #172033;
+}
+
+.lessonContent p {
+  color: #64748b;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.lessonContent a {
+  display: inline-block;
+  margin-top: 10px;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.completeButton {
+  display: block;
+  margin-top: 25px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.completeButton:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.completeButton:disabled {
+  background: #16a34a;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .lessonContent {
+    padding: 20px;
+  }
+
+  .heading {
+    font-size: 24px;
+  }
+}
