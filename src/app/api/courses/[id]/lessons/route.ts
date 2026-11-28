@@ -4,6 +4,7 @@ import { verifyAuthToken } from "@/lib/auth";
 import { connectMongoDB } from "@/lib/mongodb";
 import CourseContent from "@/models/CourseContent";
 import { saveLessonsSchema } from "@/lib/validations/lesson";
+import { parseJsonBody } from "@/lib/parseJsonBody";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -175,8 +176,16 @@ export async function PUT(
       );
     }
 
-    const body = await request.json();
-    const validation = saveLessonsSchema.safeParse(body);
+    const parsedBody = await parseJsonBody(request);
+
+    if (!parsedBody.ok) {
+      return NextResponse.json(
+        { success: false, message: "Invalid JSON request body" },
+        { status: 400 }
+      );
+    }
+
+    const validation = saveLessonsSchema.safeParse(parsedBody.body);
 
     if (!validation.success) {
       return NextResponse.json(

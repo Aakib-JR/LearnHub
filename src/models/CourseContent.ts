@@ -5,6 +5,7 @@ export interface ILesson {
   type: "text" | "video";
   body: string;
   videoUrl?: string;
+  seedKey?: string;
 }
 
 export interface ICourseContent {
@@ -32,6 +33,11 @@ const LessonSchema = new Schema<ILesson>(
     },
 
     videoUrl: {
+      type: String,
+      trim: true,
+    },
+
+    seedKey: {
       type: String,
       trim: true,
     },

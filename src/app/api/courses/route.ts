@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuthToken } from "@/lib/auth";
 import { createCourseSchema } from "@/lib/validations/course";
+import { parseJsonBody } from "@/lib/parseJsonBody";
 
 // Create course - Admin and Instructor only
 export async function POST(request: NextRequest) {
@@ -43,8 +44,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Validate request body
-    const body = await request.json();
-    const validation = createCourseSchema.safeParse(body);
+    const parsedBody = await parseJsonBody(request);
+
+    if (!parsedBody.ok) {
+      return NextResponse.json(
+        { success: false, message: "Invalid JSON request body" },
+        { status: 400 }
+      );
+    }
+
+    const validation = createCourseSchema.safeParse(parsedBody.body);
 
     if (!validation.success) {
       return NextResponse.json(

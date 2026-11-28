@@ -1,23 +1,27 @@
 import { z } from "zod";
 
-const lessonIdSchema = z
+const mongoLessonIdSchema = z
   .string()
-  .regex(/^[a-f\d]{24}$/i, "Invalid lesson ID")
-  .optional();
+  .regex(/^[a-f\d]{24}$/i, "Invalid lesson ID");
+
+const lessonIdSchema = mongoLessonIdSchema.optional();
+const seedKeySchema = z.string().trim().min(1).max(100).optional();
 
 const textLessonSchema = z.object({
   _id: lessonIdSchema,
-  title: z.string().min(3).max(255),
+  seedKey: seedKeySchema,
+  title: z.string().trim().min(3).max(255),
   type: z.literal("text"),
-  body: z.string().min(1),
+  body: z.string().trim().min(1),
 });
 
 const videoLessonSchema = z.object({
   _id: lessonIdSchema,
-  title: z.string().min(3).max(255),
+  seedKey: seedKeySchema,
+  title: z.string().trim().min(3).max(255),
   type: z.literal("video"),
-  body: z.string().min(1),
-  videoUrl: z.string().url("Invalid video URL"),
+  body: z.string().trim().min(1),
+  videoUrl: z.string().trim().url("Invalid video URL"),
 });
 
 export const saveLessonsSchema = z.object({
@@ -27,4 +31,8 @@ export const saveLessonsSchema = z.object({
       videoLessonSchema,
     ])
   ),
+});
+
+export const completeLessonSchema = z.object({
+  lessonId: mongoLessonIdSchema,
 });
