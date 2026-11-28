@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import styles from "./RegisterForm.module.css";
 
 type UserRole = "user" | "instructor";
 
 export default function RegisterForm() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +37,7 @@ export default function RegisterForm() {
         throw new Error(data.message || "Registration failed");
       }
 
-      window.location.href = "/dashboard";
+      router.push("/login?registered=1");
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Something went wrong"

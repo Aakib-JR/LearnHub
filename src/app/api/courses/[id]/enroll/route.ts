@@ -229,3 +229,139 @@ export async function POST(
     client?.release();
   }
 }
+
+// DELETE: Unenroll the authenticated student from a course
+export async function DELETE(
+  request: Request,
+  { params }: RouteParams
+) {
+  let client;
+
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("learnhub_token")?.value;
+    const userId = verifyAuthToken(token);
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized. Please login." },
+        { status: 401 }
+      );
+    }
+
+    const userResult = await db.query(
+      "SELECT role FROM users WHERE id = $1",
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "User not found." },
+        { status: 404 }
+      );
+    }
+
+    if (userResult.rows[0].role !== "user") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Only students can unenroll from courses.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+    const courseId = Number(id);
+
+    if (!Number.isInteger(courseId) || courseId <= 0) {
+      return NextResponse.json(
+        { success: false, message: "Invalid course ID." },
+        { status: 400 }
+      );
+    }
+
+    client = await db.connect();
+    await client.query("BEGIN");
+
+    const courseResult = await client.query(
+      `SELECT id, total_seats
+       FROM courses
+       WHERE id = $1
+       FOR UPDATE`,
+      [courseId]
+    );
+
+    if (courseResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return NextResponse.json(
+        { success: false, message: "Course not found." },
+        { status: 404 }
+      );
+    }
+
+    const enrollmentResult = await client.query(
+      `DELETE FROM enrollments
+       WHERE user_id = $1 AND course_id = $2
+       RETURNING id`,
+      [userId, courseId]
+    );
+
+    if (enrollmentResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You are not enrolled in this course.",
+        },
+        { status: 409 }
+      );
+    }
+
+    const activeEnrollmentResult = await client.query(
+      `SELECT COUNT(*)::int AS active_enrollments
+       FROM enrollments
+       WHERE course_id = $1`,
+      [courseId]
+    );
+    const totalSeats = Number(courseResult.rows[0].total_seats);
+    const activeEnrollments = Number(
+      activeEnrollmentResult.rows[0].active_enrollments
+    );
+    const availableSeats = Math.max(0, totalSeats - activeEnrollments);
+
+    const seatResult = await client.query(
+      `UPDATE courses
+       SET available_seats = $2,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING available_seats`,
+      [courseId, availableSeats]
+    );
+
+    await client.query("COMMIT");
+
+    return NextResponse.json({
+      success: true,
+      message: "Successfully unenrolled from the course.",
+      availableSeats: Number(seatResult.rows[0].available_seats),
+    });
+  } catch (error) {
+    if (client) {
+      await client
+        .query("ROLLBACK")
+        .catch((rollbackError) =>
+          console.error("Unenrollment rollback error:", rollbackError)
+        );
+    }
+
+    console.error("Unenrollment error:", error);
+
+    return NextResponse.json(
+      { success: false, message: "Failed to unenroll from course." },
+      { status: 500 }
+    );
+  } finally {
+    client?.release();
+  }
+}

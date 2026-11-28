@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import styles from "./Courses.module.css";
 
 interface ApiCourse {
@@ -93,7 +94,12 @@ export default function Courses() {
             return (
               <article className={styles.courseCard} key={course.title}>
                 <div className={styles.courseImage}>
-                  <img src={course.image} alt={course.title} />
+                  <Image
+                    src={course.image}
+                    alt={course.title}
+                    fill
+                    sizes="(max-width: 650px) 100vw, (max-width: 992px) 50vw, 33vw"
+                  />
                   <span className={styles.category}>
                     {course.category}
                   </span>

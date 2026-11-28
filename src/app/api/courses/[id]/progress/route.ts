@@ -4,6 +4,9 @@ import { verifyAuthToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { connectMongoDB } from "@/lib/mongodb";
 import CourseContent from "@/models/CourseContent";
+import { getCourseLessonIds } from "@/lib/courseLessonIds";
+import { completeLessonSchema } from "@/lib/validations/lesson";
+import { parseJsonBody } from "@/lib/parseJsonBody";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -68,6 +71,9 @@ export async function GET(
     }
 
     const course = courseResult.rows[0];
+    const currentLessonIds =
+      (await getCourseLessonIds([courseId])).get(courseId) ??
+      new Set<string>();
 
     // STUDENT: View own progress only
     if (user.role === "user") {
@@ -95,9 +101,13 @@ export async function GET(
         [user.id, courseId]
       );
 
+      const currentProgress = result.rows.filter((progress) =>
+        currentLessonIds.has(String(progress.lesson_id))
+      );
+
       return NextResponse.json({
         success: true,
-        completedLessons: result.rows,
+        completedLessons: currentProgress,
       });
     }
 
@@ -164,9 +174,12 @@ export async function GET(
         });
       }
 
-      if (row.lesson_id) {
+      if (
+        row.lesson_id &&
+        currentLessonIds.has(String(row.lesson_id))
+      ) {
         studentsMap.get(studentId)!.completedLessons.push({
-          lesson_id: row.lesson_id,
+          lesson_id: String(row.lesson_id),
           completed_at: row.completed_at,
         });
       }
@@ -221,18 +234,29 @@ export async function POST(
       );
     }
 
-    const body = await request.json();
-    const lessonId = body.lessonId;
+    const parsedBody = await parseJsonBody(request);
 
-    if (
-      typeof lessonId !== "string" ||
-      !/^[a-f\d]{24}$/i.test(lessonId)
-    ) {
+    if (!parsedBody.ok) {
       return NextResponse.json(
-        { success: false, message: "Invalid lesson ID." },
+        { success: false, message: "Invalid JSON request body" },
         { status: 400 }
       );
     }
+
+    const validation = completeLessonSchema.safeParse(parsedBody.body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Validation failed",
+          errors: validation.error.flatten().fieldErrors,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { lessonId } = validation.data;
 
     // Check student enrollment
     const enrollment = await db.query(

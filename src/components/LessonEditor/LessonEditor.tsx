@@ -6,6 +6,7 @@ import styles from "./LessonEditor.module.css";
 
 interface Lesson {
   _id: string;
+  seedKey?: string;
   title: string;
   type: "text" | "video";
   body: string;
@@ -14,6 +15,7 @@ interface Lesson {
 
 interface LessonInput {
   _id?: string;
+  seedKey?: string;
   title: string;
   type: "text" | "video";
   body: string;
@@ -234,7 +236,11 @@ export default function LessonEditor({ courseId }: LessonEditorProps) {
 
       nextLessons = lessons.map((lesson, index) =>
         index === selectedIndex
-          ? { ...validatedLesson, _id: selectedLessonId }
+          ? {
+              ...validatedLesson,
+              ...(lesson.seedKey ? { seedKey: lesson.seedKey } : {}),
+              _id: selectedLessonId,
+            }
           : lesson
       );
     } else {

@@ -9,6 +9,11 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+const legacyRolePromotionMigrations = new Set([
+  "005_add_user_roles.sql",
+  "006_add_instructor_role.sql",
+]);
+
 async function runMigrations() {
   const client = await pool.connect();
 
@@ -27,8 +32,16 @@ async function runMigrations() {
 
     const files = fs
       .readdirSync(migrationsDir)
-      .filter((file) => file.endsWith(".sql"))
+      .filter(
+        (file) =>
+          file.endsWith(".sql") &&
+          !legacyRolePromotionMigrations.has(file)
+      )
       .sort();
+
+    console.log(
+      "Skipping historical role-promotion migrations; role schema is handled by the forward-only migration."
+    );
 
     for (const file of files) {
       const result = await client.query(

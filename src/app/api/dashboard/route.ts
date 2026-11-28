@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuthToken } from "@/lib/auth";
-import { connectMongoDB } from "@/lib/mongodb";
-import CourseContent from "@/models/CourseContent";
+import { getCourseLessonIds } from "@/lib/courseLessonIds";
 
 // GET DASHBOARD STATISTICS
 export async function GET(request: NextRequest) {
@@ -112,7 +111,11 @@ export async function GET(request: NextRequest) {
            c.description,
            c.created_at,
            e.enrolled_at,
-           COUNT(DISTINCT lp.lesson_id)::int AS completed_lessons
+           COALESCE(
+             ARRAY_AGG(DISTINCT lp.lesson_id::text)
+               FILTER (WHERE lp.lesson_id IS NOT NULL),
+             ARRAY[]::text[]
+           ) AS completed_lesson_ids
          FROM enrollments e
          INNER JOIN courses c ON c.id = e.course_id
          LEFT JOIN lesson_progress lp
@@ -123,30 +126,25 @@ export async function GET(request: NextRequest) {
         [userId]
       );
 
-      // Get total lessons from MongoDB
-      await connectMongoDB();
-
       const courseIds = enrolledCourses.rows.map(
-        (course: { id: number }) => course.id
+        (course: { id: number }) => Number(course.id)
       );
-
-      const courseContents = await CourseContent.find({
-        courseId: { $in: courseIds },
-      }).lean();
-
-      const lessonCounts = new Map<number, number>();
-
-      for (const content of courseContents) {
-        lessonCounts.set(content.courseId, content.lessons.length);
-      }
+      const lessonIdsByCourse = await getCourseLessonIds(courseIds);
 
       const coursesWithProgress = enrolledCourses.rows.map(
         (course: {
           id: number;
-          completed_lessons: number;
+          completed_lesson_ids: string[];
         }) => {
-          const totalLessons = lessonCounts.get(course.id) ?? 0;
-          const completedLessons = course.completed_lessons;
+          const { completed_lesson_ids, ...courseData } = course;
+          const currentLessonIds =
+            lessonIdsByCourse.get(Number(course.id)) ?? new Set<string>();
+          const totalLessons = currentLessonIds.size;
+          const completedLessons = new Set(
+            (completed_lesson_ids ?? [])
+              .map(String)
+              .filter((lessonId) => currentLessonIds.has(lessonId))
+          ).size;
 
           const progress =
             totalLessons > 0
@@ -157,7 +155,8 @@ export async function GET(request: NextRequest) {
               : 0;
 
           return {
-            ...course,
+            ...courseData,
+            completed_lessons: completedLessons,
             total_lessons: totalLessons,
             progress,
           };

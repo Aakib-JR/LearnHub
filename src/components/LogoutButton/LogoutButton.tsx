@@ -1,6 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 export default function LogoutButton() {
+  const router = useRouter();
+
   async function handleLogout() {
     try {
       const response = await fetch("/api/auth/logout", {
@@ -11,7 +15,7 @@ export default function LogoutButton() {
         throw new Error("Logout failed");
       }
 
-      window.location.href = "/";
+      router.push("/");
     } catch (error) {
       console.error("Logout error:", error);
       alert("Unable to logout. Please try again.");

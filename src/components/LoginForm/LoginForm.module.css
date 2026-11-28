@@ -64,6 +64,16 @@
   margin-bottom: 15px;
 }
 
+.success {
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  font-size: 14px;
+  padding: 12px;
+  margin-bottom: 18px;
+}
+
 .card button {
   width: 100%;
   padding: 14px;
