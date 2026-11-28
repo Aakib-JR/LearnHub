@@ -2,16 +2,17 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
+
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
-import LogoutButton from "@/components/LogoutButton/LogoutButton";
+import DashboardClient from "./DashboardClient";
+
 import { verifyAuthToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 async function DashboardContent() {
   const cookieStore = await cookies();
 
-  // Run dynamic authentication after request data is available.
   await connection();
 
   const token = cookieStore.get("learnhub_token")?.value;
@@ -22,7 +23,7 @@ async function DashboardContent() {
   }
 
   const result = await db.query(
-    "SELECT id, name, email FROM users WHERE id = $1",
+    "SELECT id FROM users WHERE id = $1",
     [userId]
   );
 
@@ -30,29 +31,7 @@ async function DashboardContent() {
     redirect("/login");
   }
 
-  const user = result.rows[0];
-
-  return (
-    <main className="container py-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h1 className="fw-bold mb-2">
-            Welcome, {user.name}! 👋
-          </h1>
-          <p className="text-secondary mb-0">
-            Welcome to your LearnHub dashboard.
-          </p>
-        </div>
-        <LogoutButton />
-      </div>
-
-      <div className="card p-4 shadow-sm">
-        <h4 className="fw-bold mb-3">My Profile</h4>
-        <p><strong>Name:</strong> {user.name}</p>
-        <p><strong>Email:</strong> {user.email}</p>
-      </div>
-    </main>
-  );
+  return <DashboardClient />;
 }
 
 export default function DashboardPage() {
@@ -60,7 +39,13 @@ export default function DashboardPage() {
     <>
       <Navbar />
 
-      <Suspense fallback={<p className="container py-5">Loading dashboard...</p>}>
+      <Suspense
+        fallback={
+          <main className="container py-5">
+            Loading dashboard...
+          </main>
+        }
+      >
         <DashboardContent />
       </Suspense>
 

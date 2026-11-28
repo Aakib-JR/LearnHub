@@ -36,7 +36,7 @@
   margin-bottom: 22px;
 }
 
-.formGroup label {
+.formGroup > label {
   display: block;
   color: #334155;
   font-size: 14px;
@@ -44,7 +44,7 @@
   margin-bottom: 8px;
 }
 
-.formGroup input {
+.formGroup input:not([type="radio"]) {
   width: 100%;
   padding: 13px 15px;
   border: 1px solid #cbd5e1;
@@ -55,6 +55,47 @@
 
 .formGroup input:focus {
   border-color: #2563eb;
+}
+
+.roleOptions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.roleOption {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 15px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.roleOption input[type="radio"] {
+  accent-color: #2563eb;
+  margin: 0 0 3px;
+}
+
+.roleTitle {
+  color: #172033;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.roleDescription {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.selectedRole {
+  border-color: #2563eb;
+  background: #eff6ff;
 }
 
 .error {
@@ -109,5 +150,9 @@
 
   .card h1 {
     font-size: 26px;
+  }
+
+  .roleOptions {
+    grid-template-columns: 1fr;
   }
 }

@@ -10,8 +10,14 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-const demoEmail = "demo@learnhub.com";
+// Instructor Account
+const demoEmail = "instructor@gmail.com";
 const demoPassword = "Demo@12345";
+
+// Admin Account
+const adminName = "Admin";
+const adminEmail = "admin@gmail.com";
+const adminPassword = "admin1234";
 
 const courses = [
   {
@@ -164,24 +170,51 @@ async function seedDatabase() {
     const { connectMongoDB } = await import("../src/lib/mongodb");
     await connectMongoDB();
 
+    // --------------------------------
+    // 1. Create or update Instructor
+    // --------------------------------
+
     const passwordHash = await bcrypt.hash(demoPassword, 12);
 
     const userResult = await pool.query(
-      `INSERT INTO users (name, email, password_hash)
-       VALUES ($1, $2, $3)
+      `INSERT INTO users (name, email, password_hash, role)
+       VALUES ($1, $2, $3, 'instructor')
        ON CONFLICT (email)
        DO UPDATE SET
          name = EXCLUDED.name,
-         password_hash = EXCLUDED.password_hash
+         password_hash = EXCLUDED.password_hash,
+         role = 'instructor'
        RETURNING id`,
       ["LearnHub Demo Instructor", demoEmail, passwordHash]
     );
 
     const userId = userResult.rows[0].id;
 
-    console.log("Demo instructor ready.");
+    console.log("Instructor account ready.");
 
-    // Keep the existing demo React course and its seats.
+    // --------------------------------
+    // 2. Create or update Admin
+    // --------------------------------
+
+    const adminPasswordHash = await bcrypt.hash(adminPassword, 12);
+
+    await pool.query(
+      `INSERT INTO users (name, email, password_hash, role)
+       VALUES ($1, $2, $3, 'admin')
+       ON CONFLICT (email)
+       DO UPDATE SET
+         name = EXCLUDED.name,
+         password_hash = EXCLUDED.password_hash,
+         role = 'admin'`,
+      [adminName, adminEmail, adminPasswordHash]
+    );
+
+    console.log("Admin account ready.");
+
+    // --------------------------------
+    // 3. Keep existing React course
+    // --------------------------------
+
     const reactCourse = await pool.query(
       `SELECT id FROM courses
        WHERE user_id = $1
@@ -221,7 +254,10 @@ async function seedDatabase() {
       reactCourseId = result.rows[0].id;
     }
 
-    // Create or update the React course lessons.
+    // --------------------------------
+    // 4. Create or update React lessons
+    // --------------------------------
+
     await CourseContent.updateOne(
       { courseId: reactCourseId },
       {
@@ -248,7 +284,10 @@ async function seedDatabase() {
       { upsert: true }
     );
 
-    // Create the seven additional courses without duplicates.
+    // --------------------------------
+    // 5. Create or update seven courses
+    // --------------------------------
+
     for (const course of courses) {
       const existing = await pool.query(
         `SELECT id FROM courses
@@ -297,9 +336,20 @@ async function seedDatabase() {
       );
     }
 
+    // --------------------------------
+    // 6. Success information
+    // --------------------------------
+
     console.log("\nLearnHub seed completed successfully!");
-    console.log("Demo email:", demoEmail);
-    console.log("Demo password:", demoPassword);
+
+    console.log("\nAdmin Account:");
+    console.log("Email:", adminEmail);
+    console.log("Password:", adminPassword);
+
+    console.log("\nInstructor Account:");
+    console.log("Email:", demoEmail);
+    console.log("Password:", demoPassword);
+
   } catch (error) {
     console.error("Seed process failed:", error);
     process.exitCode = 1;

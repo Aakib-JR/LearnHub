@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { verifyAuthToken } from "@/lib/auth";
 import { createCourseSchema } from "@/lib/validations/course";
 
+// Create course - Admin and Instructor only
 export async function POST(request: NextRequest) {
   try {
     // 1. Check authentication
@@ -16,7 +17,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Validate request body
+    // 2. Check user role
+    const userResult = await db.query(
+      "SELECT role FROM users WHERE id = $1",
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "User not found." },
+        { status: 404 }
+      );
+    }
+
+    const userRole = userResult.rows[0].role;
+
+    if (userRole !== "admin" && userRole !== "instructor") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Only Admins and Instructors can create courses.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 3. Validate request body
     const body = await request.json();
     const validation = createCourseSchema.safeParse(body);
 
@@ -33,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     const { title, description, totalSeats } = validation.data;
 
-    // 3. Insert course into PostgreSQL
+    // 4. Insert course into PostgreSQL
     const result = await db.query(
       `INSERT INTO courses
        (user_id, title, description, total_seats, available_seats)
