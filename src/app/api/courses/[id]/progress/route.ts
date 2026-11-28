@@ -9,27 +9,35 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-async function checkEnrollment(userId: number, courseId: number) {
+async function getAuthenticatedUser() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("learnhub_token")?.value;
+  const userId = verifyAuthToken(token);
+
+  if (!userId) return null;
+
   const result = await db.query(
-    `SELECT id FROM enrollments
-     WHERE user_id = $1 AND course_id = $2`,
-    [userId, courseId]
+    "SELECT id, role FROM users WHERE id = $1",
+    [userId]
   );
 
-  return result.rows.length > 0;
+  if (result.rows.length === 0) return null;
+
+  return {
+    id: Number(result.rows[0].id),
+    role: result.rows[0].role as string,
+  };
 }
 
-// GET: Retrieve completed lessons
+// GET: Retrieve lesson progress
 export async function GET(
   request: Request,
   { params }: RouteParams
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("learnhub_token")?.value;
-    const userId = verifyAuthToken(token);
+    const user = await getAuthenticatedUser();
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         { success: false, message: "Unauthorized. Please login." },
         { status: 401 }
@@ -46,26 +54,127 @@ export async function GET(
       );
     }
 
-    const enrolled = await checkEnrollment(userId, courseId);
+    // Check course and ownership
+    const courseResult = await db.query(
+      "SELECT id, user_id FROM courses WHERE id = $1",
+      [courseId]
+    );
 
-    if (!enrolled) {
+    if (courseResult.rows.length === 0) {
       return NextResponse.json(
-        { success: false, message: "You must enroll to view progress." },
+        { success: false, message: "Course not found." },
+        { status: 404 }
+      );
+    }
+
+    const course = courseResult.rows[0];
+
+    // STUDENT: View own progress only
+    if (user.role === "user") {
+      const enrollment = await db.query(
+        `SELECT id FROM enrollments
+         WHERE user_id = $1 AND course_id = $2`,
+        [user.id, courseId]
+      );
+
+      if (enrollment.rows.length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "You must enroll to view progress.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const result = await db.query(
+        `SELECT lesson_id, completed_at
+         FROM lesson_progress
+         WHERE user_id = $1 AND course_id = $2
+         ORDER BY completed_at ASC`,
+        [user.id, courseId]
+      );
+
+      return NextResponse.json({
+        success: true,
+        completedLessons: result.rows,
+      });
+    }
+
+    // INSTRUCTOR: Only view progress in own courses
+    if (
+      user.role === "instructor" &&
+      Number(course.user_id) !== user.id
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "You can only view progress in your own courses.",
+        },
         { status: 403 }
       );
     }
 
+    // ADMIN: Can view progress in any course
+    if (user.role !== "admin" && user.role !== "instructor") {
+      return NextResponse.json(
+        { success: false, message: "Access denied." },
+        { status: 403 }
+      );
+    }
+
+    // Get all enrolled students and their progress
     const result = await db.query(
-      `SELECT lesson_id, completed_at
-       FROM lesson_progress
-       WHERE user_id = $1 AND course_id = $2
-       ORDER BY completed_at ASC`,
-      [userId, courseId]
+      `SELECT
+         u.id AS user_id,
+         u.name,
+         u.email,
+         lp.lesson_id,
+         lp.completed_at
+       FROM enrollments e
+       INNER JOIN users u ON u.id = e.user_id
+       LEFT JOIN lesson_progress lp
+         ON lp.user_id = e.user_id
+         AND lp.course_id = e.course_id
+       WHERE e.course_id = $1
+       ORDER BY u.name ASC, lp.completed_at ASC`,
+      [courseId]
     );
+
+    // Group progress by student
+    const studentsMap = new Map<number, {
+      userId: number;
+      name: string;
+      email: string;
+      completedLessons: {
+        lesson_id: string;
+        completed_at: Date | null;
+      }[];
+    }>();
+
+    for (const row of result.rows) {
+      const studentId = Number(row.user_id);
+
+      if (!studentsMap.has(studentId)) {
+        studentsMap.set(studentId, {
+          userId: studentId,
+          name: row.name,
+          email: row.email,
+          completedLessons: [],
+        });
+      }
+
+      if (row.lesson_id) {
+        studentsMap.get(studentId)!.completedLessons.push({
+          lesson_id: row.lesson_id,
+          completed_at: row.completed_at,
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      completedLessons: result.rows,
+      students: Array.from(studentsMap.values()),
     });
   } catch (error) {
     console.error("Get progress error:", error);
@@ -77,20 +186,28 @@ export async function GET(
   }
 }
 
-// POST: Mark a lesson as completed
+// POST: Mark a lesson as completed (Student only)
 export async function POST(
   request: Request,
   { params }: RouteParams
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("learnhub_token")?.value;
-    const userId = verifyAuthToken(token);
+    const user = await getAuthenticatedUser();
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         { success: false, message: "Unauthorized. Please login." },
         { status: 401 }
+      );
+    }
+
+    if (user.role !== "user") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Only students can complete lessons.",
+        },
+        { status: 403 }
       );
     }
 
@@ -117,11 +234,19 @@ export async function POST(
       );
     }
 
-    const enrolled = await checkEnrollment(userId, courseId);
+    // Check student enrollment
+    const enrollment = await db.query(
+      `SELECT id FROM enrollments
+       WHERE user_id = $1 AND course_id = $2`,
+      [user.id, courseId]
+    );
 
-    if (!enrolled) {
+    if (enrollment.rows.length === 0) {
       return NextResponse.json(
-        { success: false, message: "You must enroll to complete lessons." },
+        {
+          success: false,
+          message: "You must enroll to complete lessons.",
+        },
         { status: 403 }
       );
     }
@@ -156,7 +281,7 @@ export async function POST(
        VALUES ($1, $2, $3)
        ON CONFLICT (user_id, course_id, lesson_id) DO NOTHING
        RETURNING id`,
-      [userId, courseId, lessonId]
+      [user.id, courseId, lessonId]
     );
 
     return NextResponse.json({

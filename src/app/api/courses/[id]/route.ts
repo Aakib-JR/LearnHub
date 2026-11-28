@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuthToken } from "@/lib/auth";
 import { updateCourseSchema } from "@/lib/validations/course";
+import { connectMongoDB } from "@/lib/mongodb";
+import CourseContent from "@/models/CourseContent";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+// GET SINGLE COURSE
 export async function GET(
   request: NextRequest,
   { params }: RouteContext
@@ -59,12 +62,12 @@ export async function GET(
   }
 }
 
+// UPDATE COURSE
 export async function PATCH(
   request: NextRequest,
   { params }: RouteContext
 ) {
   try {
-    // 1. Check authentication
     const token = request.cookies.get("learnhub_token")?.value;
     const userId = verifyAuthToken(token);
 
@@ -75,7 +78,6 @@ export async function PATCH(
       );
     }
 
-    // 2. Get and validate course ID
     const { id } = await params;
     const courseId = Number(id);
 
@@ -86,7 +88,31 @@ export async function PATCH(
       );
     }
 
-    // 3. Validate request body
+    // Check user role
+    const userResult = await db.query(
+      "SELECT role FROM users WHERE id = $1",
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    const role = userResult.rows[0].role;
+
+    if (role !== "admin" && role !== "instructor") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Only admins and instructors can update courses.",
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const validation = updateCourseSchema.safeParse(body);
 
@@ -114,7 +140,8 @@ export async function PATCH(
       );
     }
 
-    // 4. Update only the owner's course
+    // Admin can update any course.
+    // Instructor can update only their own courses.
     const result = await db.query(
       `UPDATE courses
        SET
@@ -124,13 +151,15 @@ export async function PATCH(
          available_seats = available_seats +
            (COALESCE($3, total_seats) - total_seats),
          updated_at = CURRENT_TIMESTAMP
-       WHERE id = $4 AND user_id = $5
+       WHERE id = $4
+         AND ($5 = 'admin' OR user_id = $6)
        RETURNING *`,
       [
         title ?? null,
         description ?? null,
         totalSeats ?? null,
         courseId,
+        role,
         userId,
       ]
     );
@@ -139,7 +168,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          message: "Course not found or you are not the owner",
+          message: "Course not found or you do not have permission.",
         },
         { status: 404 }
       );
@@ -160,13 +189,12 @@ export async function PATCH(
   }
 }
 
-
+// DELETE COURSE AND ITS MONGODB CONTENT
 export async function DELETE(
   request: NextRequest,
   { params }: RouteContext
 ) {
   try {
-    // 1. Check authentication
     const token = request.cookies.get("learnhub_token")?.value;
     const userId = verifyAuthToken(token);
 
@@ -177,7 +205,6 @@ export async function DELETE(
       );
     }
 
-    // 2. Validate course ID
     const { id } = await params;
     const courseId = Number(id);
 
@@ -188,27 +215,60 @@ export async function DELETE(
       );
     }
 
-    // 3. Delete only the owner's course
-    const result = await db.query(
-      `DELETE FROM courses
-       WHERE id = $1 AND user_id = $2
-       RETURNING id`,
-      [courseId, userId]
+    // Check user role
+    const userResult = await db.query(
+      "SELECT role FROM users WHERE id = $1",
+      [userId]
     );
 
-    if (result.rows.length === 0) {
+    if (userResult.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    const role = userResult.rows[0].role;
+
+    if (role !== "admin" && role !== "instructor") {
       return NextResponse.json(
         {
           success: false,
-          message: "Course not found or you are not the owner",
+          message: "Only admins and instructors can delete courses.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Admin can delete any course.
+    // Instructor can delete only their own courses.
+    const courseResult = await db.query(
+      `SELECT id FROM courses
+       WHERE id = $1
+         AND ($2 = 'admin' OR user_id = $3)`,
+      [courseId, role, userId]
+    );
+
+    if (courseResult.rows.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Course not found or you do not have permission.",
         },
         { status: 404 }
       );
     }
 
+    // Delete lessons from MongoDB
+    await connectMongoDB();
+    await CourseContent.deleteOne({ courseId });
+
+    // Delete course from PostgreSQL
+    await db.query("DELETE FROM courses WHERE id = $1", [courseId]);
+
     return NextResponse.json({
       success: true,
-      message: "Course deleted successfully",
+      message: "Course and its lessons deleted successfully",
     });
   } catch (error) {
     console.error("Delete course error:", error);

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, password } = validation.data;
+    const { name, email, password, role } = validation.data;
 
     // 3. Check existing user
     const existingUser = await db.query(
@@ -55,12 +55,12 @@ export async function POST(request: NextRequest) {
     // 4. Hash password
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // 5. Save user in PostgreSQL
+    // 5. Save user with selected role
     const result = await db.query(
-      `INSERT INTO users (name, email, password_hash)
-       VALUES ($1, $2, $3)
-       RETURNING id, name, email, created_at`,
-      [name, email, passwordHash]
+      `INSERT INTO users (name, email, password_hash, role)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, name, email, role, created_at`,
+      [name, email, passwordHash, role]
     );
 
     return NextResponse.json(

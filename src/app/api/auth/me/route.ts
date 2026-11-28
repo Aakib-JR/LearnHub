@@ -20,9 +20,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 3. Get logged-in user details
+    // 3. Get logged-in user details including role
     const result = await db.query(
-      `SELECT id, name, email, created_at
+      `SELECT id, name, email, role, created_at
        FROM users
        WHERE id = $1`,
       [userId]
@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // 4. Return user details
     return NextResponse.json({
       success: true,
       user: result.rows[0],

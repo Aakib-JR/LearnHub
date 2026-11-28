@@ -7,7 +7,7 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-
+// GET: Check enrollment status
 export async function GET(
   request: Request,
   { params }: RouteParams
@@ -64,6 +64,7 @@ export async function GET(
   }
 }
 
+// POST: Enroll student in a course
 export async function POST(
   request: Request,
   { params }: RouteParams
@@ -86,7 +87,33 @@ export async function POST(
       );
     }
 
-    // 2. Get and validate course ID
+    // 2. Check user role
+    const userResult = await db.query(
+      "SELECT role FROM users WHERE id = $1",
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "User not found.",
+        },
+        { status: 404 }
+      );
+    }
+
+    if (userResult.rows[0].role !== "user") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Only students can enroll in courses.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 3. Get and validate course ID
     const { id } = await params;
     const courseId = Number(id);
 
@@ -100,11 +127,11 @@ export async function POST(
       );
     }
 
-    // 3. Start database transaction
+    // 4. Start database transaction
     client = await db.connect();
     await client.query("BEGIN");
 
-    // 4. Lock course row
+    // 5. Lock course row
     const courseResult = await client.query(
       `SELECT id, available_seats
        FROM courses
@@ -125,7 +152,7 @@ export async function POST(
       );
     }
 
-    // 5. Check duplicate enrollment
+    // 6. Check duplicate enrollment
     const enrollmentResult = await client.query(
       `SELECT id
        FROM enrollments
@@ -145,7 +172,7 @@ export async function POST(
       );
     }
 
-    // 6. Check available seats
+    // 7. Check available seats
     if (courseResult.rows[0].available_seats <= 0) {
       await client.query("ROLLBACK");
 
@@ -158,14 +185,14 @@ export async function POST(
       );
     }
 
-    // 7. Create enrollment
+    // 8. Create enrollment
     await client.query(
       `INSERT INTO enrollments (user_id, course_id)
        VALUES ($1, $2)`,
       [userId, courseId]
     );
 
-    // 8. Decrease available seats
+    // 9. Decrease available seats
     await client.query(
       `UPDATE courses
        SET available_seats = available_seats - 1,
@@ -174,7 +201,7 @@ export async function POST(
       [courseId]
     );
 
-    // 9. Complete transaction
+    // 10. Complete transaction
     await client.query("COMMIT");
 
     return NextResponse.json(

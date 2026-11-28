@@ -4,10 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import styles from "./RegisterForm.module.css";
 
+type UserRole = "user" | "instructor";
+
 export default function RegisterForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<UserRole>("user");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -23,7 +26,7 @@ export default function RegisterForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, role }),
       });
 
       const data = await response.json();
@@ -46,6 +49,7 @@ export default function RegisterForm() {
     <div className={styles.container}>
       <div className={styles.card}>
         <h1>Create Account</h1>
+
         <p className={styles.subtitle}>
           Join LearnHub and start learning
         </p>
@@ -87,6 +91,50 @@ export default function RegisterForm() {
               required
               minLength={8}
             />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>I want to join as</label>
+
+            <div className={styles.roleOptions}>
+              <label
+                className={`${styles.roleOption} ${
+                  role === "user" ? styles.selectedRole : ""
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="role"
+                  value="user"
+                  checked={role === "user"}
+                  onChange={() => setRole("user")}
+                />
+
+                <span className={styles.roleTitle}>Student</span>
+                <span className={styles.roleDescription}>
+                  Learn courses and track progress
+                </span>
+              </label>
+
+              <label
+                className={`${styles.roleOption} ${
+                  role === "instructor" ? styles.selectedRole : ""
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="role"
+                  value="instructor"
+                  checked={role === "instructor"}
+                  onChange={() => setRole("instructor")}
+                />
+
+                <span className={styles.roleTitle}>Instructor</span>
+                <span className={styles.roleDescription}>
+                  Create and manage your courses
+                </span>
+              </label>
+            </div>
           </div>
 
           {error && <p className={styles.error}>{error}</p>}
