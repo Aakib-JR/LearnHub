@@ -251,7 +251,7 @@ npm run build
 
 AI tools were used as development assistance for learning, debugging, code suggestions, and documentation. The implementation was reviewed during development.
 
-## Author
+## Author- Aakib JR
 
 **LearnHub - Software Development Intern Take-Home Assessment**
 
