@@ -22,53 +22,106 @@ export default function LessonViewer({
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
+  const [progressLoading, setProgressLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [progressError, setProgressError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    async function loadLessons() {
-      try {
-        const [lessonsResponse, progressResponse] = await Promise.all([
-          fetch(`/api/courses/${courseId}/lessons`),
-          fetch(`/api/courses/${courseId}/progress`),
-        ]);
+    let active = true;
 
+    async function loadLessons() {
+      let lessonsLoaded = false;
+
+      setLoading(true);
+      setProgressLoading(true);
+      setError("");
+      setProgressError("");
+      setMessage("");
+      setLessons([]);
+      setCompletedLessons([]);
+      setSelectedLesson(null);
+
+      try {
+        const lessonsResponse = await fetch(
+          `/api/courses/${courseId}/lessons`
+        );
         const lessonsData = await lessonsResponse.json();
+
+        if (
+          !lessonsResponse.ok ||
+          !lessonsData.success ||
+          !Array.isArray(lessonsData.lessons)
+        ) {
+          throw new Error(
+            lessonsData.message || "Unable to load lessons."
+          );
+        }
+
+        const loadedLessons: Lesson[] = lessonsData.lessons;
+
+        if (!active) return;
+
+        lessonsLoaded = true;
+        setLessons(loadedLessons);
+        setSelectedLesson(loadedLessons[0] ?? null);
+        setLoading(false);
+
+        const progressResponse = await fetch(
+          `/api/courses/${courseId}/progress`
+        );
         const progressData = await progressResponse.json();
 
-        if (!lessonsResponse.ok) {
-          setMessage(lessonsData.message || "Unable to load lessons.");
-          return;
+        if (
+          !progressResponse.ok ||
+          !progressData.success ||
+          !Array.isArray(progressData.completedLessons)
+        ) {
+          throw new Error(
+            progressData.message || "Unable to load progress."
+          );
         }
 
-        if (!progressResponse.ok) {
-          setMessage(progressData.message || "Unable to load progress.");
-          return;
+        const currentLessonIds = new Set(
+          loadedLessons.map((lesson) => lesson._id)
+        );
+        const completed = Array.from(
+          new Set(
+            (progressData.completedLessons as Array<{
+              lesson_id: string;
+            }>)
+              .map((item) => item.lesson_id)
+              .filter((lessonId) => currentLessonIds.has(lessonId))
+          )
+        );
+        if (active) setCompletedLessons(completed);
+      } catch (loadError) {
+        if (!active) return;
+
+        const messageText =
+          loadError instanceof Error
+            ? loadError.message
+            : "Something went wrong while loading lessons.";
+
+        if (lessonsLoaded) {
+          setProgressError(messageText);
+        } else {
+          setError(messageText);
         }
-
-        setLessons(lessonsData.lessons || []);
-
-        const completed = (progressData.completedLessons || []).map(
-          (item: { lesson_id: string }) => item.lesson_id
-        );
-
-        setCompletedLessons(completed);
-
-        const firstIncomplete = (lessonsData.lessons || []).find(
-          (lesson: Lesson) => !completed.includes(lesson._id)
-        );
-
-        setSelectedLesson(
-          firstIncomplete || lessonsData.lessons?.[0] || null
-        );
-      } catch {
-        setMessage("Something went wrong while loading lessons.");
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+          setProgressLoading(false);
+        }
       }
     }
 
-    loadLessons();
+    void loadLessons();
+
+    return () => {
+      active = false;
+    };
   }, [courseId]);
 
   async function markAsCompleted() {
@@ -90,7 +143,7 @@ export default function LessonViewer({
 
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || !data.success) {
         setMessage(data.message || "Unable to update progress.");
         return;
       }
@@ -101,6 +154,7 @@ export default function LessonViewer({
           : [...previous, selectedLesson._id]
       );
 
+      setProgressError("");
       setMessage("Lesson completed successfully!");
     } catch {
       setMessage("Something went wrong. Please try again.");
@@ -113,16 +167,20 @@ export default function LessonViewer({
     return <p>Loading lessons...</p>;
   }
 
-  if (message && lessons.length === 0) {
-    return <p>{message}</p>;
+  if (error) {
+    return <p role="alert">{error}</p>;
   }
 
   if (lessons.length === 0) {
     return <p>No lessons available for this course yet.</p>;
   }
 
+  const lessonIds = new Set(lessons.map((lesson) => lesson._id));
+  const validCompletedLessons = new Set(
+    completedLessons.filter((lessonId) => lessonIds.has(lessonId))
+  );
   const progressPercentage = Math.round(
-    (completedLessons.length / lessons.length) * 100
+    (validCompletedLessons.size / lessons.length) * 100
   );
 
   return (
@@ -130,6 +188,13 @@ export default function LessonViewer({
       <h2 className={styles.heading}>Course Lessons</h2>
 
       <div className={styles.progressSection}>
+        {progressLoading && <p>Loading your progress...</p>}
+        {!progressLoading && progressError && (
+          <p role="alert">
+            Progress is unavailable: {progressError}
+          </p>
+        )}
+
         <div className={styles.progressInfo}>
           <span>Your Progress</span>
           <strong>{progressPercentage}%</strong>
@@ -143,14 +208,14 @@ export default function LessonViewer({
         </div>
 
         <p>
-          {completedLessons.length} of {lessons.length} lessons completed
+          {validCompletedLessons.size} of {lessons.length} lessons completed
         </p>
       </div>
 
       <div className={styles.layout}>
         <div className={styles.lessonList}>
           {lessons.map((lesson, index) => {
-            const completed = completedLessons.includes(lesson._id);
+            const completed = validCompletedLessons.has(lesson._id);
 
             return (
               <button
@@ -197,10 +262,10 @@ export default function LessonViewer({
                 className={styles.completeButton}
                 onClick={markAsCompleted}
                 disabled={
-                  completedLessons.includes(selectedLesson._id) || saving
+                  validCompletedLessons.has(selectedLesson._id) || saving
                 }
               >
-                {completedLessons.includes(selectedLesson._id)
+                {validCompletedLessons.has(selectedLesson._id)
                   ? "✓ Completed"
                   : saving
                     ? "Saving..."

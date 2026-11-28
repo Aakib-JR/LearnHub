@@ -32,6 +32,7 @@ function CourseDetailsContent() {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
+  const [unenrolling, setUnenrolling] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -142,6 +143,49 @@ function CourseDetailsContent() {
       setError("Something went wrong. Please try again.");
     } finally {
       setEnrolling(false);
+    }
+  }
+
+  async function handleUnenroll() {
+    const confirmed = window.confirm(
+      "Are you sure you want to unenroll from this course?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setUnenrolling(true);
+      setError("");
+      setMessage("");
+
+      const response = await fetch(`/api/courses/${id}/enroll`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Unenrollment failed.");
+      }
+
+      setIsEnrolled(false);
+      setMessage(data.message);
+      setCourse((previous) =>
+        previous
+          ? {
+              ...previous,
+              available_seats: Number(data.availableSeats),
+            }
+          : previous
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setUnenrolling(false);
     }
   }
 
@@ -289,6 +333,26 @@ function CourseDetailsContent() {
         {canManageCourse && (
           <LessonEditor courseId={String(course.id)} />
         )}
+
+        {currentUserRole === "user" &&
+          !isOwner &&
+          isEnrolled && (
+            <section className="card p-3 mt-4">
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <p className="mb-0 text-secondary">
+                  You are enrolled in this course.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-outline-danger"
+                  onClick={handleUnenroll}
+                  disabled={unenrolling}
+                >
+                  {unenrolling ? "Unenrolling..." : "Unenroll"}
+                </button>
+              </div>
+            </section>
+          )}
 
         {/* ENROLLED STUDENT LESSON VIEWER */}
         {currentUserRole === "user" &&

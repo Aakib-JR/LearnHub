@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
@@ -120,12 +121,14 @@ export default function CoursesPage() {
                 className={styles.courseCard}
                 key={course.id}
               >
-                <img
+                <Image
                   src={
                     courseImages[course.title] ||
                     "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600"
                   }
                   alt={course.title}
+                  width={600}
+                  height={400}
                   className={styles.courseImage}
                 />
 

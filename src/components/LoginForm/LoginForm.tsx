@@ -2,9 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import styles from "./LoginForm.module.css";
 
-export default function LoginForm() {
+interface LoginFormProps {
+  registrationSuccess?: boolean;
+}
+
+export default function LoginForm({
+  registrationSuccess = false,
+}: LoginFormProps) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,7 +39,7 @@ export default function LoginForm() {
         throw new Error(data.message || "Login failed");
       }
 
-      window.location.href = "/dashboard";
+      router.push("/dashboard");
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Something went wrong"
@@ -46,6 +54,12 @@ export default function LoginForm() {
       <div className={styles.card}>
         <h1>Welcome Back</h1>
         <p className={styles.subtitle}>Login to continue learning</p>
+
+        {registrationSuccess && (
+          <p className={styles.success} role="status">
+            Registration successful. Please log in to continue.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
@@ -80,7 +94,7 @@ export default function LoginForm() {
         </form>
 
         <p className={styles.footer}>
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/register">Create Account</Link>
         </p>
       </div>
