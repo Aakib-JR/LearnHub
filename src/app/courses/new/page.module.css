@@ -1,0 +1,174 @@
+.main {
+  min-height: 75vh;
+  background: #f8fafc;
+}
+
+.container {
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 50px 24px 80px;
+}
+
+.backLink {
+  display: inline-block;
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+  margin-bottom: 25px;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+.formCard {
+  background: #ffffff;
+  padding: 40px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.04);
+}
+
+.header {
+  margin-bottom: 30px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 7px 12px;
+  color: #2563eb;
+  background: #eff6ff;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.header h1 {
+  color: #172033;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 18px 0 10px;
+}
+
+.header p {
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 24px;
+}
+
+.formGroup label {
+  color: #172033;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.formGroup input,
+.formGroup textarea {
+  width: 100%;
+  padding: 13px 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  color: #172033;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus {
+  border-color: #2563eb;
+}
+
+.formGroup textarea {
+  resize: vertical;
+  min-height: 130px;
+}
+
+.helpText {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.fieldError {
+  color: #dc2626;
+}
+
+.error {
+  padding: 13px 15px;
+  margin-bottom: 22px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.cancelButton,
+.submitButton {
+  padding: 12px 22px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.cancelButton {
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+}
+
+.submitButton {
+  color: #ffffff;
+  background: #2563eb;
+  border: 1px solid #2563eb;
+}
+
+.submitButton:hover {
+  background: #1d4ed8;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 30px 16px 55px;
+  }
+
+  .formCard {
+    padding: 25px 20px;
+  }
+
+  .header h1 {
+    font-size: 26px;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .cancelButton,
+  .submitButton {
+    text-align: center;
+  }
+}

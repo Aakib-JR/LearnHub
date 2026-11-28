@@ -280,7 +280,7 @@ export default function DashboardClient() {
                 </div>
 
                 <Link
-                  href="/courses"
+                  href="/courses/new"
                   className={styles.primaryButton}
                 >
                   + Create Course
