@@ -1,0 +1,244 @@
+.editor {
+  margin: 40px auto 50px;
+  padding: 28px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.tag {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.heading {
+  margin: 0;
+  color: #172033;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  align-items: start;
+  gap: 22px;
+}
+
+.lessonList,
+.formCard {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.listHeading,
+.formHeading {
+  margin: 0 0 16px;
+  color: #172033;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.listHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.listHeading span {
+  display: inline-flex;
+  min-width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 12px;
+}
+
+.lessonItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+}
+
+.lessonItem + .lessonItem {
+  margin-top: 10px;
+}
+
+.lessonSelect {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #334155;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lessonSelect:disabled {
+  cursor: not-allowed;
+}
+
+.selected {
+  color: #1d4ed8;
+}
+
+.lessonNumber {
+  display: inline-flex;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #e2e8f0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.selected .lessonNumber {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.lessonDetails {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.lessonDetails strong {
+  overflow-wrap: anywhere;
+}
+
+.lessonDetails small {
+  color: #64748b;
+}
+
+.lessonSummary {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.empty,
+.status {
+  margin: 0;
+  color: #64748b;
+}
+
+.formHeading {
+  margin-bottom: 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.formGroup label {
+  color: #172033;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fieldError {
+  color: #b91c1c;
+}
+
+.error,
+.success,
+.warning {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+@media (max-width: 768px) {
+  .editor {
+    padding: 20px;
+  }
+
+  .header {
+    flex-direction: column;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .editor {
+    margin: 30px auto;
+    padding: 16px;
+  }
+
+  .lessonList,
+  .formCard {
+    padding: 16px;
+  }
+
+  .lessonItem {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}

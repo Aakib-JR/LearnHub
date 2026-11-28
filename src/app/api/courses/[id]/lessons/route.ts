@@ -9,6 +9,10 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+interface LessonIdProjection {
+  lessons: Array<{ _id: { toString(): string } }>;
+}
+
 // GET: Read course lessons
 export async function GET(
   request: NextRequest,
@@ -187,6 +191,31 @@ export async function PUT(
 
     await connectMongoDB();
 
+    const existingContent = await CourseContent.findOne({ courseId })
+      .select("lessons._id")
+      .lean<LessonIdProjection>();
+    const existingLessonIds = new Set(
+      (existingContent?.lessons ?? []).map((lesson) => String(lesson._id))
+    );
+    const submittedLessonIds = validation.data.lessons.flatMap((lesson) =>
+      lesson._id ? [lesson._id] : []
+    );
+    const uniqueSubmittedLessonIds = new Set(submittedLessonIds);
+
+    if (
+      uniqueSubmittedLessonIds.size !== submittedLessonIds.length ||
+      submittedLessonIds.some((lessonId) => !existingLessonIds.has(lessonId))
+    ) {
+      return NextResponse.json(
+        { success: false, message: "Invalid lesson ID" },
+        { status: 400 }
+      );
+    }
+
+    const removedLessonIds = Array.from(existingLessonIds).filter(
+      (lessonId) => !uniqueSubmittedLessonIds.has(lessonId)
+    );
+
     const content = await CourseContent.findOneAndUpdate(
       { courseId },
       { $set: { lessons: validation.data.lessons } },
@@ -198,9 +227,27 @@ export async function PUT(
       }
     );
 
+    let warning: string | undefined;
+
+    if (removedLessonIds.length > 0) {
+      try {
+        await db.query(
+          `DELETE FROM lesson_progress
+           WHERE course_id = $1
+             AND lesson_id = ANY($2::text[])`,
+          [courseId, removedLessonIds]
+        );
+      } catch (error) {
+        console.error("Delete removed lesson progress error:", error);
+        warning =
+          "Lessons were saved, but progress records for deleted lessons could not be cleared.";
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: "Lessons saved successfully",
+      warning,
       lessons: content.lessons,
     });
   } catch (error) {
